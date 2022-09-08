@@ -1,5 +1,5 @@
 {
-  "name": "@brevitybuilder/worker-auth",
+  "name": "@brevity-builder/worker-auth",
   "version": "0.1.0",
   "type": "module",
   "exports": {
