@@ -27,6 +27,8 @@ export default {
     }
 
     // in a request, validate user is authenticated
+    // you need to pass a headers obj in because we may need to add a `Set-Cookie` header
+    // in the case that we had to revalidate the user.
     const headers = new Headers();
     const user = await auth.getUserFromRequest(request, headers);
     if (user) {
