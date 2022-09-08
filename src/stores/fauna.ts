@@ -1,0 +1,118 @@
+import type { User } from "../schemas";
+import type { Store, UserWithHash } from "./";
+import faunadb from "faunadb";
+
+const q = faunadb.query;
+
+class FaunaStore implements Store {
+  client: faunadb.Client;
+  constructor(secret: string, domain: string) {
+    this.client = new faunadb.Client({
+      secret,
+      domain,
+    });
+  }
+  async saveUser(user: Omit<UserWithHash, "id">): Promise<User | null> {
+    try {
+      return await this.client.query(
+        q.Let(
+          {
+            user: q.Create(q.Collection("users"), { data: user }),
+          },
+          q.Merge(q.Select(["data"], q.Var("user")), {
+            id: q.Select(["ref", "id"], q.Var("user")),
+            hash: null,
+          })
+        )
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+  async sessionIsActive(userId: string, sessionId: string): Promise<boolean> {
+    try {
+      await this.client.query(
+        q.Get(q.Ref(q.Collection("sessions"), sessionId))
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  async createSession(userId: string): Promise<string | null> {
+    try {
+      return await this.client.query(
+        q.Select(
+          ["ref", "id"],
+          q.Create(q.Collection("sessions"), {
+            data: {
+              userId,
+            },
+          })
+        )
+      );
+    } catch (e) {
+      console.log("error saving refresh token:", e);
+      return null;
+    }
+  }
+  async endSession(sessionId: string): Promise<void> {
+    try {
+      await this.client.query(
+        q.Delete(q.Ref(q.Collection("sessions"), sessionId))
+      );
+    } catch (e) {
+      console.log("error deleting session:", e);
+    }
+  }
+  async getUserWithHash(email: string): Promise<UserWithHash | null> {
+    try {
+      return await this.client.query(
+        q.Let(
+          {
+            user: q.Get(q.Match(q.Index("users_by_email"), email)),
+          },
+          q.Merge(q.Select(["data"], q.Var("user")), {
+            id: q.Select(["ref", "id"], q.Var("user")),
+          })
+        )
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+  async getUser(email: string): Promise<User | null> {
+    try {
+      return await this.client.query(
+        q.Let(
+          {
+            user: q.Get(q.Match(q.Index("users_by_email"), email)),
+          },
+          q.Merge(q.Select(["data"], q.Var("user")), {
+            id: q.Select(["ref", "id"], q.Var("user")),
+            hash: null,
+          })
+        )
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+  async getAllSessionsForUser(userId: string): Promise<string[]> {
+    try {
+      return this.client.query(
+        q.Select(
+          "data",
+          q.Map(
+            q.Paginate(q.Match(q.Index("sessions_by_userId"), userId)),
+            q.Lambda("X", q.Select("id", q.Var("X")))
+          )
+        )
+      );
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+export default FaunaStore;

@@ -1,0 +1,22 @@
+{
+  "extends": [
+    "github>whitesource/merge-confidence:beta",
+    "config:js-app",
+    "schedule:weekly"
+  ],
+  "assignees": ["nicksrandall"],
+  "baseBranches": ["main"],
+  "automerge": true,
+  "major": { "automerge": false },
+  "labels": ["upgrade", "bot"],
+  "packageRules": [
+    {
+      "packagePatterns": ["eslint"],
+      "groupName": "eslint"
+    },
+    {
+      "packagePatterns": ["@types/"],
+      "groupName": "@types"
+    }
+  ]
+}
