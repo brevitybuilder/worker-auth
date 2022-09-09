@@ -99,28 +99,34 @@ export default class Auth {
         try {
           if (providerId) {
             await this.store.endSession(providerId);
+            const headers = new Headers();
+            this.#clearCookies(host).forEach((cookie) => {
+              headers.append("Set-Cookie", cookie);
+            });
             return new Response("", {
               status: 204,
-              headers: {
-                "Set-Cookie": await this.#clearCookies(host),
-              },
+              headers,
             });
           }
           if (!cookies.__stateless) {
+            const headers = new Headers();
+            this.#clearCookies(host).forEach((cookie) => {
+              headers.append("Set-Cookie", cookie);
+            });
             return new Response("", {
               status: 204,
-              headers: {
-                "Set-Cookie": await this.#clearCookies(host),
-              },
+              headers,
             });
           }
           const { payload } = jwt.decode(cookies.__stateless);
           await this.store.endSession(payload.sid);
+          const headers = new Headers();
+          this.#clearCookies(host).forEach((cookie) => {
+            headers.append("Set-Cookie", cookie);
+          });
           return new Response("", {
             status: 204,
-            headers: {
-              "Set-Cookie": await this.#clearCookies(host),
-            },
+            headers,
           });
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
@@ -190,11 +196,13 @@ export default class Auth {
             newStatelessToken,
             host
           );
+          const headers = new Headers();
+          [newStatefulCookie, newStatelessCookie].forEach((cookie) => {
+            headers.append("Set-Cookie", cookie);
+          });
           return new Response("", {
             status: 204,
-            headers: {
-              "Set-Cookie": [newStatefulCookie, newStatelessCookie].join(", "),
-            },
+            headers,
           });
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
@@ -235,12 +243,14 @@ export default class Auth {
             newStatelessToken,
             host
           );
+          const headers = new Headers();
+          headers.set("Content-Type", "application/json");
+          [newStatefulCookie, newStatelessCookie].forEach((cookie) => {
+            headers.append("Set-Cookie", cookie);
+          });
           return new Response(JSON.stringify({ user }), {
             status: 200,
-            headers: {
-              "Content-Type": "application/json",
-              "Set-Cookie": [newStatefulCookie, newStatelessCookie].join(", "),
-            },
+            headers,
           });
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
@@ -291,7 +301,9 @@ export default class Auth {
     if (cookies.__stateful) {
       const isValid = await jwt.verify(cookies.__stateful, this.options.secret);
       if (!isValid) {
-        headers.set("Set-Cookie", await this.#clearCookies(host));
+        this.#clearCookies(host).forEach((cookie) => {
+          headers.append("Set-Cookie", cookie);
+        });
         return null;
       }
       const { payload } = jwt.decode(cookies.__stateful);
@@ -300,7 +312,9 @@ export default class Auth {
         payload.id
       );
       if (!isActive) {
-        headers.set("Set-Cookie", await this.#clearCookies(host));
+        this.#clearCookies(host).forEach((cookie) => {
+          headers.append("Set-Cookie", cookie);
+        });
         return null;
       }
       const newToken = await this.#makeStatelessToken(
@@ -385,7 +399,7 @@ export default class Auth {
         secure: true,
         sameSite: "lax",
       }),
-    ].join(", ");
+    ];
   }
   async #getPayloadFromStatefulCookie(
     cookies: ParsedCookies

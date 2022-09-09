@@ -17,7 +17,12 @@ class FaunaStore implements Store {
       return await this.client.query(
         q.Let(
           {
-            user: q.Create(q.Collection("users"), { data: user }),
+            user: q.Create(q.Collection("users"), {
+              data: {
+                email: user.email.toLowerCase(),
+                hash: user.hash,
+              },
+            }),
           },
           q.Merge(q.Select(["data"], q.Var("user")), {
             id: q.Select(["ref", "id"], q.Var("user")),
@@ -72,7 +77,9 @@ class FaunaStore implements Store {
       return await this.client.query(
         q.Let(
           {
-            user: q.Get(q.Match(q.Index("users_by_email"), email)),
+            user: q.Get(
+              q.Match(q.Index("users_by_email"), email?.toLowerCase())
+            ),
           },
           q.Merge(q.Select(["data"], q.Var("user")), {
             id: q.Select(["ref", "id"], q.Var("user")),
