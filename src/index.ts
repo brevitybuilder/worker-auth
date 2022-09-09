@@ -61,6 +61,20 @@ export default class Auth {
   async #handleGet(request: Request) {
     const { action, providerId, host, cookies } = this.#init(request);
     switch (action) {
+      case "me":
+        try {
+          const headers = new Headers();
+          headers.set("Content-Type", "application/json");
+          headers.set("Cache-Control", "public, max-age=60"); // this is valid for 60 is seconds
+          const user = await this.getUserFromRequest(request, headers);
+          if (!user) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+          return new Response(JSON.stringify(user), { headers });
+        } catch (error: any) {
+          console.log("refresh error", error);
+          return new Response(error.message, { status: 400 });
+        }
       case "refresh":
         try {
           const payload = await this.#getPayloadFromStatefulCookie(cookies);
@@ -219,11 +233,15 @@ export default class Auth {
           const userRecord = { email: userInput.email };
           const user = await this.store.saveUser({ ...userRecord, hash });
           if (!user) {
-            return new Response("Something went wrong creating the user", { status: 500 });
+            return new Response("Something went wrong creating the user", {
+              status: 500,
+            });
           }
           const sessionId = await this.store.createSession(user.id);
           if (!sessionId) {
-            return new Response("Something went wrong creating the session", { status: 500 });
+            return new Response("Something went wrong creating the session", {
+              status: 500,
+            });
           }
           const newStatefulToken = await this.#makeStatefulToken(
             sessionId,
