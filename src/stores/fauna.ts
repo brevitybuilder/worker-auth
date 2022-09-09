@@ -26,6 +26,7 @@ class FaunaStore implements Store {
         )
       );
     } catch (e) {
+      console.log("error saving user:", e);
       return null;
     }
   }
@@ -36,6 +37,7 @@ class FaunaStore implements Store {
       );
       return true;
     } catch (e) {
+      console.log("error getting session:", e);
       return false;
     }
   }
@@ -78,6 +80,7 @@ class FaunaStore implements Store {
         )
       );
     } catch (e) {
+      console.log("error getting user with hash:", e);
       return null;
     }
   }
@@ -95,6 +98,7 @@ class FaunaStore implements Store {
         )
       );
     } catch (e) {
+      console.log("error getting user:", e);
       return null;
     }
   }
@@ -110,6 +114,7 @@ class FaunaStore implements Store {
         )
       );
     } catch (e) {
+      console.log("error getting sessions for user:", e);
       return [];
     }
   }
