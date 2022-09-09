@@ -211,11 +211,11 @@ export default class Auth {
           const userRecord = { email: userInput.email };
           const user = await this.store.saveUser({ ...userRecord, hash });
           if (!user) {
-            return new Response("Something went wrong", { status: 500 });
+            return new Response("Something went wrong creating the user", { status: 500 });
           }
           const sessionId = await this.store.createSession(user.id);
           if (!sessionId) {
-            return new Response("Something went wrong", { status: 500 });
+            return new Response("Something went wrong creating the session", { status: 500 });
           }
           const newStatefulToken = await this.#makeStatefulToken(
             sessionId,
@@ -258,12 +258,12 @@ export default class Auth {
     try {
       const host = new URL(request.url).hostname;
       const cookies = request.headers.has("cookie")
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        ? parseCookie(request.headers.get("cookie")!)
+        ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          parseCookie(request.headers.get("cookie")!)
         : {};
       let token;
       if (request.headers.has("Authorization")) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         token = request.headers.get("Authorization")!.split(" ")[1];
       } else {
         token = cookies.__stateless;
@@ -289,12 +289,12 @@ export default class Auth {
     headers: Headers
   ) {
     if (cookies.__stateful) {
-      const isValid = await jwt.verify(cookies.__client__, this.options.secret);
+      const isValid = await jwt.verify(cookies.__stateful, this.options.secret);
       if (!isValid) {
         headers.set("Set-Cookie", await this.#clearCookies(host));
         return null;
       }
-      const { payload } = jwt.decode(cookies.__client__);
+      const { payload } = jwt.decode(cookies.__stateful);
       const isActive = await this.store.sessionIsActive(
         payload.user.id,
         payload.id
