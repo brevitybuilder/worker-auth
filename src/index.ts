@@ -399,7 +399,7 @@ export default class Auth {
       sameSite: "lax",
     });
   }
-  async #clearCookies(host: string) {
+  #clearCookies(host: string): string[] {
     return [
       serializeCookie("__stateless", "", {
         domain: host,
