@@ -1,7 +1,7 @@
 import jwt, { JwtPayload } from "@tsndr/cloudflare-worker-jwt";
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import bcrypt from "bcryptjs";
-import { now } from "./utils";
+import { badRequest, now, serverError, unauthorized } from "./utils";
 
 import { CreateUserInput, User } from "./schemas";
 import type { Store } from "./stores";
@@ -68,18 +68,18 @@ export default class Auth {
           headers.set("Cache-Control", "public, max-age=60"); // this is valid for 60 is seconds
           const user = await this.getUserFromRequest(request, headers);
           if (!user) {
-            return new Response("Unauthorized", { status: 401 });
+            return unauthorized();
           }
           return new Response(JSON.stringify(user), { headers });
         } catch (error: any) {
           console.log("refresh error", error);
-          return new Response(error.message, { status: 400 });
+          return badRequest();
         }
       case "refresh":
         try {
           const payload = await this.#getPayloadFromStatefulCookie(cookies);
           if (!payload) {
-            return new Response("Unauthorized", { status: 401 });
+            return unauthorized();
           }
           // TODO: see if user record needs updating?
           const newStatelessToken = await this.#makeStatelessToken(
@@ -107,7 +107,7 @@ export default class Auth {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           console.log("refresh error", error);
-          return new Response(error.message, { status: 400 });
+          return badRequest();
         }
       case "signout":
         try {
@@ -145,14 +145,14 @@ export default class Auth {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           console.log("signout error", error);
-          return new Response(error.message, { status: 400 });
+          return badRequest();
         }
       case "sessions":
         try {
           const headers = new Headers();
           const user = await this.getUserFromRequest(request, headers);
           if (!user) {
-            return new Response("Unauthorized", { status: 401 });
+            return unauthorized();
           }
           const sessions = await this.store.getAllSessionsForUser(user.id);
           headers.set("Content-Type", "application/json");
@@ -163,7 +163,7 @@ export default class Auth {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           console.log("sessions error", error);
-          return new Response(error.message, { status: 400 });
+          return badRequest();
         }
       default:
         throw new Error("Not implemented");
@@ -181,15 +181,15 @@ export default class Auth {
           const userInput = CreateUserInput.parse(obj);
           const user = await this.store.getUserWithHash(userInput.email);
           if (!user) {
-            return new Response("Unauthorized", { status: 401 });
+            return unauthorized();
           }
           const valid = await bcrypt.compare(userInput.password, user.hash);
           if (!valid) {
-            return new Response("Invalid credentials", { status: 401 });
+            return unauthorized();
           }
           const sessionId = await this.store.createSession(user.id);
           if (!sessionId) {
-            return new Response("Something went wrong", { status: 500 });
+            return serverError();
           }
           const userWithoutHash = { email: user.email, id: user.id };
           const newStatefulToken = await this.#makeStatefulToken(
@@ -221,7 +221,7 @@ export default class Auth {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           console.log("signin error", error);
-          return new Response(error.message, { status: 400 });
+          return badRequest();
         }
       case "signup":
         try {
@@ -233,15 +233,11 @@ export default class Auth {
           const userRecord = { email: userInput.email };
           const user = await this.store.saveUser({ ...userRecord, hash });
           if (!user) {
-            return new Response("Something went wrong creating the user", {
-              status: 500,
-            });
+            return serverError();
           }
           const sessionId = await this.store.createSession(user.id);
           if (!sessionId) {
-            return new Response("Something went wrong creating the session", {
-              status: 500,
-            });
+            return serverError();
           }
           const newStatefulToken = await this.#makeStatefulToken(
             sessionId,
@@ -273,7 +269,7 @@ export default class Auth {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           console.log("signup error", error);
-          return new Response(error.message, { status: 400 });
+          return badRequest();
         }
       default:
         throw new Error("Not implemented");
