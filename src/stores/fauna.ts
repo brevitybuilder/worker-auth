@@ -1,5 +1,5 @@
 import type { User } from "../schemas";
-import type { Store, UserWithHash } from "./";
+import type { Store, UserWithHash, UserWithAuthenticators } from "./";
 import faunadb from "faunadb";
 
 const q = faunadb.query;
@@ -12,17 +12,33 @@ class FaunaStore implements Store {
       domain,
     });
   }
-  async saveUser(user: Omit<UserWithHash, "id">): Promise<User | null> {
+  async newId(): Promise<string> {
+    const res = await this.client.query(q.NewId());
+    return res as unknown as string;
+  }
+  async saveUser(
+    user: Omit<UserWithHash, "id"> | Omit<UserWithAuthenticators, "id">,
+    id?: string
+  ): Promise<User | null> {
     try {
+      const data  = {
+        email: user.email.toLowerCase(),
+      };
+      if ("hash" in user) {
+        data.hash = user.hash;
+      }
+      if ("authenticators" in user) {
+        data.authenticators = user.authenticators;
+      }
       return await this.client.query(
         q.Let(
           {
-            user: q.Create(q.Collection("users"), {
-              data: {
-                email: user.email.toLowerCase(),
-                hash: user.hash,
-              },
-            }),
+            user: q.Create(
+              id ? q.Ref(q.Collection("users"), id) : q.Collection("users"),
+              {
+                data,
+              }
+            ),
           },
           q.Merge(q.Select(["data"], q.Var("user")), {
             id: q.Select(["ref", "id"], q.Var("user")),

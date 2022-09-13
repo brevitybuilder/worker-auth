@@ -4,8 +4,13 @@ export interface UserWithHash extends User {
   hash: string;
 }
 
+export interface UserWithAuthenticators extends User {
+  authenticators: any[];
+}
+
 export interface Store {
-  saveUser(user: Omit<UserWithHash, "id">): Promise<User | null>; // must also check that email is unique.
+  newId(): Promise<string>;
+  saveUser(user: Omit<UserWithHash, "id"> | Omit<UserWithAuthenticators, "id">, id?: string): Promise<User | null>; // must also check that email is unique.
   sessionIsActive(userId: string, sessionId: string): Promise<boolean>;
   createSession(userId: string): Promise<string | null>;
   endSession(sessionId: string): Promise<void>;

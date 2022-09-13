@@ -10,6 +10,7 @@ export const CreateUserInput = z.object({
 export const User = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
+  authenticators : z.array(z.any()).optional(),
 });
 
 export type User = z.infer<typeof User>;

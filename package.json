@@ -26,8 +26,11 @@
   },
   "dependencies": {
     "@tsndr/cloudflare-worker-jwt": "^2.0.1",
+    "@worker-tools/structured-json": "0.1.0-pre.4",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.5.0",
+    "fido2-lib": "^3.3.2",
+    "typed-array-utils": "0.3.0-pre.0",
     "zod": "^3.19.0"
   },
   "devDependencies": {
@@ -40,8 +43,8 @@
     "esbuild": "^0.15.7",
     "eslint": "^8.23.0",
     "eslint-config-prettier": "^8.5.0",
-    "jsdom": "^20.0.0",
     "faunadb": "^4.6.0",
+    "jsdom": "^20.0.0",
     "lint-staged": "^13.0.3",
     "prettier": "^2.7.1",
     "prettier-plugin-organize-imports": "^3.1.1",
