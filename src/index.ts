@@ -1,7 +1,7 @@
 import jwt, { JwtPayload } from "@tsndr/cloudflare-worker-jwt";
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import bcrypt from "bcryptjs";
-import { badRequest, now, serverError, unauthorized } from "./utils";
+import { badRequest, now, serverError, successfulError, unauthorized } from "./utils";
 
 import { CreateUserInput, User } from "./schemas";
 import type { Store } from "./stores";
@@ -65,12 +65,12 @@ export default class Auth {
         try {
           const headers = new Headers();
           headers.set("Content-Type", "application/json");
-          headers.set("Cache-Control", "public, max-age=60"); // this is valid for 60 is seconds
+          headers.set("Cache-Control", "public, max-age=59"); // this is valid for 59 is seconds
           const user = await this.getUserFromRequest(request, headers);
           if (!user) {
-            return unauthorized();
+            return new Response(JSON.stringify({ user: null, loggedIn: false }), { headers });
           }
-          return new Response(JSON.stringify(user), { headers });
+          return new Response(JSON.stringify({ user, loggedIn: true }), { headers });
         } catch (error: any) {
           console.log("refresh error", error);
           return badRequest();
